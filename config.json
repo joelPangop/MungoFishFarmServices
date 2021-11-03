@@ -1,0 +1,6 @@
+{
+  "connectionString": "mongodb+srv://root:Abc123...@egoal-shoppingdb.piyf9.mongodb.net/havenofbundles?retryWrites=true&w=majority",
+  "secret": "secretkey23456",
+  "jwtExpiration": 3600,
+  "jwtRefreshExpiration": 86400
+}
