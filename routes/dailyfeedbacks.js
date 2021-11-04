@@ -212,8 +212,9 @@ async function send_confirm_mail(mail) {
 
 }
 
-router.get('/approbations/all', function (req, res, next) {
-    db.Approbation.findAll({}).then(approbations => {
+router.get('/approbations/:id', function (req, res, next) {
+    const id = req.params.id;
+    db.Approbation.findAll({where: {supervisorID: id}}).then(approbations => {
         console.log('approbations', approbations);
         res.status(200).send(approbations);
     }).catch(err => {
