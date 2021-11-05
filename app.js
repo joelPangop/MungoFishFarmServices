@@ -10,6 +10,7 @@ const sitesRouter = require('./routes/sites');
 const tanksRouter = require('./routes/tanks');
 const tanksProductRouter = require('./routes/tank_product');
 const dailyFeedbackRouter = require('./routes/dailyfeedbacks');
+const approbationRouter = require('./routes/approbations');
 
 const app = express();
 
@@ -29,6 +30,14 @@ app.use('/sites', sitesRouter);
 app.use('/tanks', tanksRouter);
 app.use('/tank_products', tanksProductRouter);
 app.use('/daily_feedback', dailyFeedbackRouter);
+app.use('/approbations', approbationRouter);
+
+const cors = require('cors')
+app.use(cors({
+    allowedOrigins: [
+        '*'
+    ]
+}));
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

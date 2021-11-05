@@ -118,8 +118,10 @@ router.post('/', function (req, res, next) {
 })
 
 router.put('/:id', async function (req, res, next) {
-    const dailyfeedback = req.body;
+    const dailyfeedback = req.body.dailyFeedback;
     const id = req.params.id;
+    const user = req.body.user;
+
     await db.DailyFeedbacks.update({
         qtyAlmt09AM: dailyfeedback.qtyAlmt09AM,
         qtyAlmt12PM: dailyfeedback.qtyAlmt12PM,
@@ -145,7 +147,45 @@ router.put('/:id', async function (req, res, next) {
             id: id
         }
     }).then((resp) => {
-        res.status(200).json({message: "DailyFeedback updated: ", status: "Success"});
+        if (dailyfeedback.submitted === true) {
+            const id = user.supervisorID;
+            db.Users.findOne({where: {id: id}}).then(async (supervisor) => {
+                console.log('User', supervisor);
+                const mail = {};
+                mail.to = supervisor.email;
+                mail.from = 'joelpangop@mungofishfarm.net';
+                mail.subject = "Daily feeding successfully";
+                mail.text = user.userName + " has submitted the daily feeding: " + user.userName + "_" + dailyfeedback.date;
+
+                db.Approbation.create({
+                    daily_feedbackID: dailyfeedback.id,
+                    userID: user.id,
+                    supervisorID: supervisor.id,
+                    status: "",
+                    createdAt: Date.now(),
+                }, {fields: ['daily_feedbackID', 'userID', 'supervisorID', 'status', 'createdAt']}).then(async (approbation) => {
+                    console.log(approbation)
+                    await send_confirm_mail(mail).then((resp) => {
+                        console.log(resp);
+                        res.status(200).json({
+                            message: "DailyFeedback updated: " + user.username + "_" + moment(dailyfeedback.date).format('MMMM_DD_YYYY'),
+                            status: "Success"
+                        });
+                    });
+                })
+                // res.status(200).send(user);
+            }).catch(err => {
+                console.log(err);
+                res.status(501).send(err);
+            });
+        } else {
+            res.status(200).json({
+                message: "DailyFeedback updated: " + user.username + "_" + dailyfeedback.date,
+                status: "Success"
+            });
+        }
+
+        // res.status(200).json({message: "DailyFeedback updated: ", status: "Success"});
     }).catch(err => {
         console.log(err);
         res.status(501).send(err);
@@ -164,7 +204,7 @@ router.delete('/all', async function (req, res, next) {
         console.log(err);
         res.status(501).send(err);
     });
-})
+});
 
 async function send_confirm_mail(mail) {
     // const mail = {};
@@ -211,89 +251,5 @@ async function send_confirm_mail(mail) {
     });
 
 }
-
-router.get('/approbations/:id', function (req, res, next) {
-    const id = req.params.id;
-    db.Approbation.findAll({where: {supervisorID: id}}).then(approbations => {
-        console.log('approbations', approbations);
-        res.status(200).send(approbations);
-    }).catch(err => {
-        console.log(err);
-        res.status(501).send(err);
-    });
-});
-
-router.get('/approbation/one/:id', function (req, res, next) {
-    const id = req.params.id;
-    db.Approbation.findOne({where: {id: id}}).then(approbations => {
-        console.log('approbations', approbations);
-        res.status(200).send(approbations);
-    }).catch(err => {
-        console.log(err);
-        res.status(501).send(err);
-    });
-});
-
-router.put('/approbation/one/:id', function (req, res, next) {
-    const id = req.params.id;
-    const data = req.body;
-    const timeElapsed = Date.now();
-    const today = new Date(timeElapsed);
-    if (data.approbation.status === "Approved") {
-        data.approbation.approvedAt = today;
-    } else {
-        data.approbation.rejectedAt = today;
-    }
-    db.Approbation.update({
-        daily_feedbackID: data.approbation.daily_feedbackID,
-        userID: data.approbation.userID,
-        supervisorID: data.approbation.supervisorID,
-        status: data.approbation.status,
-        createdAt: data.approbation.createdAt,
-        approvedAt: data.approbation.approvedAt,
-        rejectedAt: data.approbation.rejectedAt,
-        remark: data.approbation.remark
-    }, {
-        where: {
-            id: id
-        }
-    }).then((resp) => {
-
-        db.Users.findOne({where: {id: data.approbation.userID}}).then((user) => {
-            const mail_to_user = {};
-            mail_to_user.to = user.dataValues.email;
-            mail_to_user.from = 'joelpangop@mungofishfarm.net';
-            mail_to_user.subject = "Daily feeding " + data.approbation.status;
-            const date_action = data.approbation.status === "Approved" ? data.approbation.approvedAt.toString() : data.approbation.rejectedAt.toString()
-            mail_to_user.text = date_action + ": " + data.supervisor.userName + " has " + data.approbation.status + " the daily feeding submitted ";
-
-            const mail_to_supervisor = {};
-            mail_to_supervisor.to = data.supervisor.email;
-            mail_to_supervisor.from = 'joelpangop@mungofishfarm.net';
-            mail_to_supervisor.subject = "Daily feeding " + data.approbation.status;
-            mail_to_supervisor.text = date_action + ": " + " You " + data.approbation.status + " the daily feeding submitted " + " by "+user.dataValues.userName;
-
-            send_confirm_mail(mail_to_user);
-            send_confirm_mail(mail_to_supervisor);
-
-            res.status(200).send({message: "Daily Feeding " + data.approbation.status, status: "Success"});
-        })
-
-    }).catch(err => {
-        console.log(err);
-        res.status(501).send(err);
-    })
-});
-
-router.get('/daily/approbation/one/:id', function (req, res, next) {
-    const id = req.params.id;
-    db.Approbation.findOne({where: {supervisorID: id}}).then(approbations => {
-        console.log('approbations', approbations);
-        res.status(200).send(approbations);
-    }).catch(err => {
-        console.log(err);
-        res.status(501).send(err);
-    });
-});
 
 module.exports = router;

@@ -227,3 +227,17 @@ CREATE TABLE `mungo_fish_db`.`approbations` (
          REFERENCES `mungo_fish_db`.`users` (`id`)
          ON DELETE NO ACTION
          ON UPDATE NO ACTION);
+
+ALTER TABLE `mungo_fish_db`.`nets`
+    DROP FOREIGN KEY `fk_net_tank`;
+ALTER TABLE `mungo_fish_db`.`nets`
+    CHANGE COLUMN `tankID` `tankID` INT(11) NOT NULL ,
+    DROP PRIMARY KEY,
+    ADD PRIMARY KEY (`numNet`, `tankID`);
+;
+ALTER TABLE `mungo_fish_db`.`nets`
+    ADD CONSTRAINT `fk_net_tank`
+        FOREIGN KEY (`tankID`)
+            REFERENCES `mungo_fish_db`.`tanks` (`id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION;

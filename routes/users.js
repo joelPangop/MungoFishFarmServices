@@ -225,7 +225,7 @@ async function register(user, userInfosID, res) {
 }
 
 async function createTelephone(req, telephone, userInfosID, res) {
-    if (!telephone.id) {
+
         await db.Telephone.create({
             telephone_number: telephone.telephone_number,
             telephone_category: telephone.telephone_category,
@@ -241,10 +241,9 @@ async function createTelephone(req, telephone, userInfosID, res) {
                 console.log(tel.dataValues.telephone_number + " created")
             })
 
+        }).catch((err) => {
+            console.log(err);
         })
-    } else {
-        console.log({message: err.message, status: "Failed"});
-    }
 
 }
 
@@ -341,7 +340,7 @@ router.put('/update/:id', async (req, res) => {
     })
 
     db.Address.findOne({where: {userInfosID: req.body.user.userInfoID}}).then(async (resp) => {
-        if (!resp.dataValues) {
+        if (!resp) {
             await createAddress(req.body.address, req.body.user.userInfoID, res)
         } else {
             await updateAddress(req, resp.dataValues.id);
@@ -365,18 +364,19 @@ router.put('/update/:id', async (req, res) => {
     //         await updateTelephone(req, telephone, req.body.user.userInfoID)
     //     }
     // }
-    // for (let telephone of telephones) {
-    //     db.Telephone.find({where: {userInfosID: req.body.user.userInfoID}}).then(async (resp) => {
-    //         if (!resp.dataValues) {
-    //             await createTelephone(req, telephone, req.body.user.userInfoID, res)
-    //         } else {
-    //             await updateTelephone(req, resp.dataValues, id, req.body.user.userInfoID);
-    //         }
-    //     }).catch(err => {
-    //         console.log(err);
-    //         // res.status(501).send(err);
-    //     });
-    // }
+    for (let telephone of telephones) {
+        const id = telephone.id ? telephone.id : -1;
+        db.Telephone.findOne({where: {id: id}}).then(async (resp) => {
+            if (!resp) {
+                await createTelephone(req, telephone, req.body.user.userInfoID, res)
+            } else {
+                await updateTelephone(req, resp.dataValues, id, req.body.user.userInfoID);
+            }
+        }).catch(err => {
+            console.log(err);
+            // res.status(501).send(err);
+        });
+    }
 })
 
 router.put('/update/password/:id', async (req, res) => {
@@ -445,7 +445,7 @@ async function updateTelephone(req, telephone, id, userInfosID) {
         userInfosID: userInfosID
     }, {
         where: {
-            id: id
+            id: telephone.id
         }
     }).then(async (resp) => {
         await db.ChangeLog.create({
