@@ -13,6 +13,11 @@ CREATE TABLE IF NO EXISTS `mungo_fish_db`.`user_infos` (
   `birthday` DATE NULL,
   PRIMARY KEY (`id`));
 
+CREATE TABLE IF NO EXISTS `mungo_fish_db`.`roles` (
+ `id` INT NOT NULL AUTO_INCREMENT,
+ `roleName` VARCHAR(45) NULL,
+ PRIMARY KEY (`id`));
+
 CREATE TABLE IF NO EXISTS `mungo_fish_db`.`users` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `userName` VARCHAR(45) NULL,
@@ -202,6 +207,7 @@ CREATE TABLE `mungo_fish_db`.`approbations` (
  `createdAt` DATETIME NULL,
  `approvedAt` DATETIME NULL,
  `rejectedAt` DATETIME NULL,
+ `remark` VARCHAR(1000) NULL,
  PRIMARY KEY (`id`),
  INDEX `fk_approbation_df_idx` (`daily_feedbackID` ASC),
  INDEX `fk_approbation_user_idx` (`userID` ASC),

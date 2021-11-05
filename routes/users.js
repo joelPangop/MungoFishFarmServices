@@ -308,14 +308,12 @@ router.put('/update/:id', async (req, res) => {
         }, {
             where: {
                 id: id
-            },
-
+            }
+        },{
             include: [{
-                model: db.Telephone,
-                as: 'Telephone'
-            }]
-
-        }).then(async (userInfo) => {
+            model: db.Telephone,
+            as: 'Telephone'
+        }]}).then(async (userInfo) => {
             res.status(200).send(userInfo);
         }).catch(err => {
             console.log(err);

@@ -27,6 +27,9 @@ module.exports = (sequelize) => {
         rejectedAt: {
             type: DataTypes.DATE
         },
+        remark: {
+            type: Sequelize.STRING
+        }
     }, {
         timestamps: false
     });
