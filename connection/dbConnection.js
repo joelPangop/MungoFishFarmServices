@@ -1,5 +1,5 @@
 const WizardController = require("../controllers/WizardController");
-// const {Sequelize} = require('sequelize');
+const {Sequelize} = require('sequelize');
 // const sequelize = new Sequelize('mungo_fish_db', 'root', 'Abc123...', {
 //     host: 'localhost',
 //     port: 3306,
