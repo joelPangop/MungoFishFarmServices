@@ -149,7 +149,8 @@ router.post('/register', async (req, res) => {
                     await createTelephone(req, telephone, data.dataValues.id, res)
                 }
                 await createAddress(address, data.dataValues.id, res)
-                await register(user, data.dataValues.id, res)
+                const response = await register(user, data.dataValues.id, res)
+                res.status(200).send(response);
             })
 
         }).catch((e) => {
@@ -226,24 +227,24 @@ async function register(user, userInfosID, res) {
 
 async function createTelephone(req, telephone, userInfosID, res) {
 
-        await db.Telephone.create({
-            telephone_number: telephone.telephone_number,
-            telephone_category: telephone.telephone_category,
-            userInfosID: userInfosID
-        }, {fields: ['telephone_number', 'telephone_category', 'userInfosID']}).then(async (tel) => {
-            await db.ChangeLog.create({
-                user: req.body.username,
-                entity: "telephones",
-                operation: "CREATE",
-                dateTime: Date.now(),
-                data: JSON.stringify(telephone)
-            }, {fields: ['user', 'entity', 'operation', 'dateTime', 'data']}).then(async (res) => {
-                console.log(tel.dataValues.telephone_number + " created")
-            })
-
-        }).catch((err) => {
-            console.log(err);
+    await db.Telephone.create({
+        telephone_number: telephone.telephone_number,
+        telephone_category: telephone.telephone_category,
+        userInfosID: userInfosID
+    }, {fields: ['telephone_number', 'telephone_category', 'userInfosID']}).then(async (tel) => {
+        await db.ChangeLog.create({
+            user: req.body.username,
+            entity: "telephones",
+            operation: "CREATE",
+            dateTime: Date.now(),
+            data: JSON.stringify(telephone)
+        }, {fields: ['user', 'entity', 'operation', 'dateTime', 'data']}).then(async (res) => {
+            console.log(tel.dataValues.telephone_number + " created")
         })
+
+    }).catch((err) => {
+        console.log(err);
+    })
 
 }
 
@@ -294,89 +295,73 @@ router.put('/update/:id', async (req, res) => {
             id: id
         }
     }).then(async (resp) => {
-        // let test = new Map(Object.entries(req.body.user));
-        // console.log(test);
-
         console.log('userInfos', req.body.userInfos);
         await db.UserInfos.update({
             firstName: req.body.userInfos.firstName,
             lastName: req.body.userInfos.lastName,
             gender: req.body.userInfos.gender,
-            birthday: req.body.userInfos.birthday,
-            Telephone: telephones
+            birthday: req.body.userInfos.birthday
         }, {
             where: {
-                id: id
+                id: req.body.user.userInfoID
             }
-        },{
-            include: [{
-            model: db.Telephone,
-            as: 'Telephone'
-        }]}).then(async (userInfo) => {
-            res.status(200).send(userInfo);
+        }).then(async (userInfo) => {
+            console.log(userInfo);
+
+
+            promise.catch(function (err) {
+                return res.status(501).json({result: 'failed', message: 'Some internal error'});
+            })
+
+            db.Address.findOne({where: {userInfosID: req.body.user.userInfoID}}).then(async (resp) => {
+                if (!resp) {
+                    await createAddress(req.body.address, req.body.user.userInfoID, res)
+                } else {
+                    await updateAddress(req, resp.dataValues.id);
+                }
+                // console.log('userInfos', userInfos);
+                // res.status(200).send(userInfos);
+            }).catch(err => {
+                console.log(err);
+                res.status(501).send(err);
+            });
+
+            for (let telephone of telephones) {
+                const id = telephone.id ? telephone.id : -1;
+                db.Telephone.findOne({where: {id: id}}).then(async (resp) => {
+                    if (!resp) {
+                        await createTelephone(req, telephone, req.body.user.userInfoID, res)
+                    } else {
+                        await updateTelephone(req, resp.dataValues, id, req.body.user.userInfoID);
+                    }
+                }).catch(err => {
+                    console.log(err);
+                });
+            }
+
         }).catch(err => {
             console.log(err);
             res.status(501).send(err);
         });
 
-        // logService.generateDelta("users", req.body.user);
-        // await db.ChangeLog.create({
-        //     user: req.body.username,
-        //     entity: "users",
-        //     operation: "UPDATE",
-        //     dateTime: Date.now(),
-        //     data: JSON.stringify(req.body.user)
-        // }, {fields: ['user', 'entity', 'operation', 'dateTime', 'data']}).then(async (response) => {
-        //     res.status(200).send({result: 'success', user: resp});
-        // })
+        logService.generateDelta("users", req.body.user);
+        await db.ChangeLog.create({
+            user: req.body.username,
+            entity: "users",
+            operation: "UPDATE",
+            dateTime: Date.now(),
+            data: JSON.stringify(req.body.user)
+        }, {fields: ['user', 'entity', 'operation', 'dateTime', 'data']}).then(async (response) => {
+            console.log(response);
+
+            res.status(200).send({result: 'Success', message: "User updated"});
+        })
 
     }).catch(err => {
         console.log(err);
         res.status(402).json({result: 'failed', message: 'User not found'});
     });
 
-    promise.catch(function (err) {
-        return res.status(501).json({result: 'failed', message: 'Some internal error'});
-    })
-
-    db.Address.findOne({where: {userInfosID: req.body.user.userInfoID}}).then(async (resp) => {
-        if (!resp) {
-            await createAddress(req.body.address, req.body.user.userInfoID, res)
-        } else {
-            await updateAddress(req, resp.dataValues.id);
-        }
-        // console.log('userInfos', userInfos);
-        // res.status(200).send(userInfos);
-    }).catch(err => {
-        console.log(err);
-        res.status(501).send(err);
-    });
-
-    // if (!address.id) {
-    //     await createAddress(req.body.address, req.body.user.userInfoID, res)
-    // } else {
-    //     await updateAddress(res, req);
-    // }
-    // for (let telephone of telephones) {
-    //     if (!telephone.id) {
-    //         await createTelephone(req, telephone, req.body.user.userInfoID, res)
-    //     } else {
-    //         await updateTelephone(req, telephone, req.body.user.userInfoID)
-    //     }
-    // }
-    for (let telephone of telephones) {
-        const id = telephone.id ? telephone.id : -1;
-        db.Telephone.findOne({where: {id: id}}).then(async (resp) => {
-            if (!resp) {
-                await createTelephone(req, telephone, req.body.user.userInfoID, res)
-            } else {
-                await updateTelephone(req, resp.dataValues, id, req.body.user.userInfoID);
-            }
-        }).catch(err => {
-            console.log(err);
-            // res.status(501).send(err);
-        });
-    }
 })
 
 router.put('/update/password/:id', async (req, res) => {

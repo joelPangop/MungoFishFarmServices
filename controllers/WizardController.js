@@ -49,21 +49,26 @@ module.exports = {
         db.UserInfos = require("../models/UserInfos")(sequelize, Sequelize);
         try {
             console.log('Create if not exists.');
-
+            let i = 1;
             for(let roleName of RoleEnum.RoleArray) {
+
                 await db.Role.findOne({
                     where: {
                         roleName: roleName
                     }
                 }).then(async data => {
                     if (data == null) {
+                        // i++;
                         console.log("Creation d'un Role")
                         await db.Role.create({
+                            id: i,
                             roleName: roleName
-                        }, {fields: ['roleName']}).then(async res => {
+                        }, {fields: ['id', 'roleName']}).then(async res => {
+                            i++;
                             console.log("Role "+res.roleName+" created");
                         })
                     }
+
                 })
             }
 
